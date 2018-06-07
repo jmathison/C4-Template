@@ -18,12 +18,6 @@ void Character::update(float dt)
 	// Test tile collision
 	if (mapref) {
 		collide = mapref->checkTileCollision(*this);
-	
-		// Test out of bounds
-		/*auto mapbounds = sf::FloatRect(sf::Vector2f(0, 0), mapref->getPixelPos(mapref->mapWidth, mapref->mapHeight));
-		auto actorbounds = sf::FloatRect(position, size);
-
-		mapbounds.*/
 
 	}
 

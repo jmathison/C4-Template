@@ -2,6 +2,9 @@
 #include "Map.h"
 #include "Character.h"
 #include "Enemy.h"
+#include "Projectile.h"
+
+#include <iostream>
 
 int main()
 {
@@ -11,16 +14,22 @@ int main()
 
 	GameMap map = GameMap(window, 20, 20);
 
+	std::vector<Projectile*> projectiles;
+
 	// Controls
 	sf::Keyboard::Key move_left = sf::Keyboard::Key::A;
 	sf::Keyboard::Key move_right = sf::Keyboard::Key::D;
 	sf::Keyboard::Key move_up = sf::Keyboard::Key::W;
 	sf::Keyboard::Key move_down = sf::Keyboard::Key::S;
 
+	sf::Mouse::Button fire = sf::Mouse::Button::Left;
+
 	bool move_left_pressed = false;
 	bool move_right_pressed = false;
 	bool move_up_pressed = false;
 	bool move_down_pressed = false;
+
+	bool firing = false;
 
 	sf::Vector2f input(0, 0);
 
@@ -32,6 +41,9 @@ int main()
 	enemy.followTarget = &player;
 
 	sf::Clock dtClock;
+
+	float firingDelay = 0.5;
+	float firingCounter = 0;
 
 	while (window.isOpen())
 	{
@@ -77,6 +89,17 @@ int main()
 				}
 
 			}
+
+			if (event.type == sf::Event::MouseButtonPressed) {
+				if (event.mouseButton.button == fire) {
+					firing = true;
+				}
+			}
+			if (event.type == sf::Event::MouseButtonReleased) {
+				if (event.mouseButton.button == fire) {
+					firing = false;
+				}
+			}
 		}
 
 		// Process input
@@ -96,14 +119,42 @@ int main()
 			player.movementInput.y += 1;
 		}
 
+
 		// Normalize vector
 		float mag = std::sqrt(std::pow(player.movementInput.x, 2) + std::pow(player.movementInput.y, 2));
 		player.movementInput /= mag;
 
+		// Fire projectile
+		if (firingCounter > 0) {
+			firingCounter -= dt.asSeconds();
+		}
+
+		if (firing && firingCounter <= 0) {
+			std::cout << projectiles.size() << std::endl;
+			firingCounter = firingDelay;
+
+			// Spawn projectile
+			// Get target direction
+			sf::Vector2f mouse_float = sf::Vector2f(sf::Mouse::getPosition(window));
+			sf::Vector2f fire_dir =  mouse_float - player.position;
+
+			Projectile* new_bullet = new Projectile(player.position, player.size * 0.25f, fire_dir);
+			new_bullet->mapref = &map;
+			projectiles.push_back(new_bullet);
+		}
 
 		// Run updates
 		player.update(dt.asSeconds());
 		enemy.update(dt.asSeconds());
+
+		for (int i = 0; i < projectiles.size(); i++) {
+			projectiles[i]->update(dt.asSeconds());
+			if (projectiles[i]->destroy) {
+				projectiles.erase(projectiles.begin() + i);
+			}
+		}
+
+		// TODO: Test collisions, destroy enemies on hit
 
 		window.clear();
 		
@@ -111,6 +162,11 @@ int main()
 
 		player.draw(window);
 		enemy.draw(window);
+
+		for (auto projectile : projectiles) {
+			projectile->draw(window);
+		}
+
 
 		window.display();
 	}
